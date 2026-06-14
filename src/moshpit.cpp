@@ -65,9 +65,9 @@ struct MoshPit {
     range_of_view = rov;
 
     constants = consts;
-    cell_per_side = static_cast<int32_t>(length / range_of_view);
-    total_cells = static_cast<int32_t>(length * width / (range_of_view * range_of_view));
-    net = std::vector<std::vector<Mosher*>> (total_cells);
+    cell_per_side = static_cast<int32_t>(std::ceil(length / range_of_view));
+    total_cells = cell_per_side * cell_per_side; // Строго квадрат, чтобы индексы не ломались
+    net.resize(total_cells);
   }
   //Далее функция для определения, к какой ячейке сетки относится чел
   //Пока тупо для удобства будем считать длину и ширину одинаковыми, причем кратными range
@@ -79,7 +79,10 @@ struct MoshPit {
     int32_t x_cell = static_cast<int32_t>(x / range_of_view);
     int32_t y_cell = static_cast<int32_t>(y / range_of_view);
 
+    if (x_cell < 0) x_cell = 0;
     if (x_cell >= cell_per_side) x_cell = cell_per_side - 1;
+
+    if (y_cell < 0) y_cell = 0;
     if (y_cell >= cell_per_side) y_cell = cell_per_side - 1;
 
     return y_cell * cell_per_side + x_cell;
@@ -147,6 +150,9 @@ struct MoshPit {
 
   //Пропульсионная
   Vector get_propulsion_force(const Mosher& person) {
+    if (person.current_velocity.get_magnitude() < 1e-5f) {
+      return {0.0f, 0.0f};
+    }
     auto velocity_diff = (person.goal_velocity_abs - person.current_velocity.get_magnitude());
     return constants.propulsion_strength * velocity_diff * (person.current_velocity / person.current_velocity.get_magnitude());
   }
@@ -165,8 +171,36 @@ struct MoshPit {
   }
 
   //TODO ввести по аналогии с репульсионной силой взаимодействие со стенами
-  Vector get_wall_force(const Mosher& percon) {
-    return {0, 0};
+  Vector get_wall_force(const Mosher& person) {
+    auto x = person.position.x;
+    auto y = person.position.y;
+    Vector wall_force = {0, 0};
+
+    if (x < person.radius) {
+      Vector diff = {x, 0};
+      wall_force += calculate_wall_force(person, diff);
+    }
+
+    if (y < person.radius) {
+      Vector diff = {0, y};
+      wall_force += calculate_wall_force(person, diff);
+    }
+
+    if (x + person.radius > length) {
+      Vector diff = {-length + x, 0};
+      wall_force += calculate_wall_force(person, diff);
+    }
+    if (y + person.radius > width) {
+      Vector diff = {0, -width + y};
+      wall_force += calculate_wall_force(person, diff);
+    }
+    return wall_force;
+  }
+
+  Vector calculate_wall_force(const Mosher& person, const Vector& diff) {
+    auto coefficent = (1 - diff.get_magnitude() / person.radius);
+    auto force = constants.repulsion_strength * coefficent * std::sqrt(coefficent) * (diff / diff.get_magnitude());
+    return force;
   }
 
   Vector get_total_determ_force(const Mosher& person, std::vector<std::vector<Mosher*>>& net, std::vector<int32_t>& neighbours_id, std::vector<Mosher*>& flock_neighbs, std::vector<Mosher*>& repulsion_neighbs) {
@@ -175,20 +209,21 @@ struct MoshPit {
     find_neigbs_for_flock_and_rep(person, net, neighbours_id, repulsion_neighbs, flock_neighbs);
     auto repulsion_force = get_repulsion_force(person, repulsion_neighbs);
     auto propulsion_force = get_propulsion_force(person);
+    auto wall_force = get_wall_force(person);
     
     Vector flocking_force = {0, 0};
     if (person.state == Status::ACTIVE) {
       flocking_force = get_flocking_force(person, flock_neighbs);
     }
-    return propulsion_force + flocking_force - repulsion_force;
+    return propulsion_force + flocking_force - repulsion_force + wall_force;
   }
 
   Vector get_stochastic_step(const Mosher& person) {
-    auto sqrt_dt = std::sqrt(time_step);
+    auto sqrt_dt = std::sqrt(2 * time_step);
     float rand_x = dist(generator);
     float rand_y = dist(generator);
     Vector rand_vec = {rand_x, rand_y};
-    auto stochastic_step = fluct_strength * sqrt_dt / person.mass * rand_vec;
+    auto stochastic_step = constants.propulsion_strength * fluct_strength * sqrt_dt / person.mass * rand_vec;
     return stochastic_step;
   }
   //Для начала пересчитываем все детерминированные силы 
@@ -216,7 +251,7 @@ struct MoshPit {
     std::vector<Mosher*> flock_neighbs;
     std::vector<Mosher*> repulsion_neighbs;
     for (size_t i = 0; i < n_iterations; i++)  {
-      auto net = make_moshers_net();
+      make_moshers_net();
       set_determ_force(net, neighbours_id, flock_neighbs, repulsion_neighbs);
       for (auto& mosher : people) {
         if (mosher.state == Status::PASSIVE) {
