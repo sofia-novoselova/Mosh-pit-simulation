@@ -32,6 +32,7 @@ struct MoshPit {
   std::mt19937 generator;
   std::normal_distribution<float> dist{0.0f, 1.0f};
   std::vector<Mosher> people;
+  std::vector<std::vector<Mosher*>> net;
   SystemConstants constants;
   float time_step;
   float length;
@@ -64,9 +65,9 @@ struct MoshPit {
     range_of_view = rov;
 
     constants = consts;
-
     cell_per_side = static_cast<int32_t>(length / range_of_view);
     total_cells = static_cast<int32_t>(length * width / (range_of_view * range_of_view));
+    net = std::vector<std::vector<Mosher*>> (total_cells);
   }
   //Далее функция для определения, к какой ячейке сетки относится чел
   //Пока тупо для удобства будем считать длину и ширину одинаковыми, причем кратными range
@@ -102,13 +103,14 @@ struct MoshPit {
   }
   //Далее логики для поиска соседей для флокинга и репульсионной силы
   //Здесь выстраиваем вектор принадлежностей мошеров ячейкам
-  std::vector<std::vector<Mosher*>> make_moshers_net() {
-    std::vector<std::vector<Mosher*>> net(total_cells);
+  void make_moshers_net() {
+    for (auto& cell : net) {
+      cell.clear();
+    }
     for (auto& mosher : people) {
       auto cell = find_cell(mosher.position);
       net[cell].push_back(&mosher);
     }
-    return net;
   }
 
   void find_neigbs_for_flock_and_rep(const Mosher& person, const std::vector<std::vector<Mosher*>>& net, const std::vector<int32_t>& neighbours_id, std::vector<Mosher*>& repulsion_neighbs, std::vector<Mosher*>& flock_neighbs) {
@@ -189,26 +191,33 @@ struct MoshPit {
     auto stochastic_step = fluct_strength * sqrt_dt / person.mass * rand_vec;
     return stochastic_step;
   }
-  //Далее по алгоритму Эйлера-Маруйяни делается шаг
+  //Для начала пересчитываем все детерминированные силы 
+  void set_determ_force(std::vector<std::vector<Mosher*>>& net, std::vector<int32_t>& neighbours_id, std::vector<Mosher*>& flock_neighbs, std::vector<Mosher*>& repulsion_neighbs) {
+    for (auto& mosher : people) {
+      mosher.total_strenth = get_total_determ_force(mosher, net, neighbours_id, flock_neighbs, repulsion_neighbs);
+    }
+  }
+
   void make_step_one_agent_active(Mosher& person, std::vector<std::vector<Mosher*>>& net, std::vector<int32_t>& neighbours_id, std::vector<Mosher*>& flock_neighbs, std::vector<Mosher*>& repulsion_neighbs) {
-    auto determ_force = get_total_determ_force(person, net, neighbours_id, flock_neighbs, repulsion_neighbs);
+    auto determ_force = person.total_strenth;
     auto stochastic_step = get_stochastic_step(person);
     person.current_velocity = person.current_velocity + determ_force * time_step / person.mass + stochastic_step;
     person.position = person.position + person.current_velocity * time_step;
   }
 
   void make_step_one_agent_passive(Mosher& person, std::vector<std::vector<Mosher*>>& net, std::vector<int32_t>& neighbours_id, std::vector<Mosher*>& flock_neighbs, std::vector<Mosher*>& repulsion_neighbs) {
-    auto determ_force = get_total_determ_force(person, net, neighbours_id, flock_neighbs, repulsion_neighbs);
+    auto determ_force = person.total_strenth;
     person.current_velocity = person.current_velocity + determ_force * time_step / person.mass;
     person.position = person.position + person.current_velocity * time_step;
   }
 
   void make_step_n_iterations(size_t n_iterations) {
-    auto net = make_moshers_net();
     std::vector<int32_t> neighbours_id;
     std::vector<Mosher*> flock_neighbs;
     std::vector<Mosher*> repulsion_neighbs;
     for (size_t i = 0; i < n_iterations; i++)  {
+      auto net = make_moshers_net();
+      set_determ_force(net, neighbours_id, flock_neighbs, repulsion_neighbs);
       for (auto& mosher : people) {
         if (mosher.state == Status::PASSIVE) {
           make_step_one_agent_passive(mosher, net, neighbours_id,flock_neighbs, repulsion_neighbs);
