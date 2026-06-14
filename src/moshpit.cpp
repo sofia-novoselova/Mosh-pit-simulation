@@ -145,8 +145,7 @@ struct MoshPit {
         if (delta_position < range_of_view * range_of_view) {
           flock_neighbs.push_back(mosher);
         }
-        if (delta_position < (mosher->radius + person.radius) *
-                                 (mosher->radius + person.radius)) {
+        if (delta_position < (mosher->radius + person.radius) * (mosher->radius + person.radius)) {
           repulsion_neighbs.push_back(mosher);
         }
       }

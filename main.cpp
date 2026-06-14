@@ -25,20 +25,20 @@ struct AgentData {
 #pragma pack(pop)
 
 int main() {
-  int32_t N = 400;
+  int32_t N = 500;
   float L = 20.0f;
   float dt = 0.05f;
-  float active_fraction = 0.5f;
+  float active_fraction = 0.3f;
   float fluct = 1.5f;
   float flock = 0.5f;
   int num_frames = 100; // Ровно 100 файлов
 
-  float range_of_view = 1.5f;
-  float mass = 70.0f;
-  float radius = 0.3f;
-  float goal_vel = 3.0f;
+  float range_of_view = 4.0f;
+  float mass = 1.0f;
+  float radius = 1.0f;
+  float goal_vel = 1.0f;
 
-  SystemConstants consts(150.0f, 5.0f, range_of_view, mass, radius, goal_vel);
+  SystemConstants consts(25.0f, 1.0f, range_of_view, mass, radius, goal_vel);
 
   std::vector<bool> mask =
       generate_mask_for_mosher_activity(N, active_fraction);
