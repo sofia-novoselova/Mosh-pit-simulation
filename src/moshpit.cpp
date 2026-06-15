@@ -194,38 +194,79 @@ struct MoshPit {
     return flock_force;
   }
 
-  // TODO ввести по аналогии с репульсионной силой взаимодействие со стенами
+  // // TODO ввести по аналогии с репульсионной силой взаимодействие со стенами
+  // Vector get_wall_force(const Mosher &person) {
+  //   auto x = person.position.x;
+  //   auto y = person.position.y;
+  //   Vector wall_force = {0, 0};
+
+  //   if (x < person.radius) {
+  //     Vector diff = {x, 0};
+  //     wall_force += calculate_wall_force(person, diff);
+  //   }
+
+  //   if (y < person.radius) {
+  //     Vector diff = {0, y};
+  //     wall_force += calculate_wall_force(person, diff);
+  //   }
+
+  //   if (x + person.radius > length) {
+  //     Vector diff = {-length + x, 0};
+  //     wall_force += calculate_wall_force(person, diff);
+  //   }
+  //   if (y + person.radius > width) {
+  //     Vector diff = {0, -width + y};
+  //     wall_force += calculate_wall_force(person, diff);
+  //   }
+  //   return wall_force;
+  // }
+
+  // Vector calculate_wall_force(const Mosher &person, const Vector &diff) {
+  //   auto coefficent = (1 - diff.get_magnitude() / person.radius);
+  //   auto force = constants.repulsion_strength * coefficent *
+  //                std::sqrt(coefficent) * (diff / diff.get_magnitude());
+  //   return force;
+  // }
+
+
   Vector get_wall_force(const Mosher &person) {
     auto x = person.position.x;
     auto y = person.position.y;
     Vector wall_force = {0, 0};
 
+    // Левая стена (x = 0)
     if (x < person.radius) {
-      Vector diff = {x, 0};
-      wall_force += calculate_wall_force(person, diff);
+      float overlap = person.radius - x; // Насколько сильно вмялся в стену
+      float coeff = overlap / person.radius;
+      float force_mag = constants.repulsion_strength * coeff * std::sqrt(coeff);
+      wall_force.x += force_mag; // Стена толкает ВПРАВО (положительный x)
     }
 
-    if (y < person.radius) {
-      Vector diff = {0, y};
-      wall_force += calculate_wall_force(person, diff);
-    }
-
+    // Правая стена (x = length)
     if (x + person.radius > length) {
-      Vector diff = {-length + x, 0};
-      wall_force += calculate_wall_force(person, diff);
+      float overlap = (x + person.radius) - length;
+      float coeff = overlap / person.radius;
+      float force_mag = constants.repulsion_strength * coeff * std::sqrt(coeff);
+      wall_force.x -= force_mag; // Стена толкает ВЛЕВО (отрицательный x)
     }
-    if (y + person.radius > width) {
-      Vector diff = {0, -width + y};
-      wall_force += calculate_wall_force(person, diff);
-    }
-    return wall_force;
-  }
 
-  Vector calculate_wall_force(const Mosher &person, const Vector &diff) {
-    auto coefficent = (1 - diff.get_magnitude() / person.radius);
-    auto force = constants.repulsion_strength * coefficent *
-                 std::sqrt(coefficent) * (diff / diff.get_magnitude());
-    return force;
+    // Нижняя стена (y = 0)
+    if (y < person.radius) {
+      float overlap = person.radius - y;
+      float coeff = overlap / person.radius;
+      float force_mag = constants.repulsion_strength * coeff * std::sqrt(coeff);
+      wall_force.y += force_mag; // Стена толкает ВВЕРХ (положительный y)
+    }
+
+    // Верхняя стена (y = width)
+    if (y + person.radius > width) {
+      float overlap = (y + person.radius) - width;
+      float coeff = overlap / person.radius;
+      float force_mag = constants.repulsion_strength * coeff * std::sqrt(coeff);
+      wall_force.y -= force_mag; // Стена толкает ВНИЗ (отрицательный y)
+    }
+
+    return wall_force;
   }
 
   Vector get_total_determ_force(const Mosher &person,
@@ -281,6 +322,26 @@ struct MoshPit {
     person.position = person.position + person.current_velocity * time_step;
   }
 
+  //Здесь 1e-2 фит параметр(как и деление на 10), можно глобально добавить зону где эта сила перестает действовать 
+  void make_step_one_agent_active_with_center_potential(Mosher &person,
+                                  std::vector<std::vector<Mosher *>> &net,
+                                  std::vector<int32_t> &neighbours_id,
+                                  std::vector<Mosher *> &flock_neighbs,
+                                  std::vector<Mosher *> &repulsion_neighbs) {
+    auto determ_force = person.total_strenth;
+    Vector to_center = {length / 2 - person.position.x, length / 2 - person.position.y};
+    Vector center_force = {0, 0};
+    if (to_center.get_magnitude() > length / 15) {
+      center_force = determ_force.get_magnitude() * (to_center / to_center.get_magnitude()) / 2;
+    }
+    determ_force += center_force;
+    auto stochastic_step = get_stochastic_step(person);
+    person.current_velocity = person.current_velocity +
+                              determ_force * time_step / person.mass +
+                              stochastic_step;
+    person.position = person.position + person.current_velocity * time_step;
+  }
+
   void make_step_one_agent_passive(Mosher &person,
                                    std::vector<std::vector<Mosher *>> &net,
                                    std::vector<int32_t> &neighbours_id,
@@ -305,6 +366,24 @@ struct MoshPit {
                                       repulsion_neighbs);
         } else {
           make_step_one_agent_active(mosher, net, neighbours_id, flock_neighbs,
+                                     repulsion_neighbs);
+        }
+      }
+    }
+  }
+  void make_step_n_iterations_with_potential(size_t n_iterations) {
+    std::vector<int32_t> neighbours_id;
+    std::vector<Mosher *> flock_neighbs;
+    std::vector<Mosher *> repulsion_neighbs;
+    for (size_t i = 0; i < n_iterations; i++) {
+      make_moshers_net();
+      set_determ_force(net, neighbours_id, flock_neighbs, repulsion_neighbs);
+      for (auto &mosher : people) {
+        if (mosher.state == Status::PASSIVE) {
+          make_step_one_agent_passive(mosher, net, neighbours_id, flock_neighbs,
+                                      repulsion_neighbs);
+        } else {
+          make_step_one_agent_active_with_center_potential(mosher, net, neighbours_id, flock_neighbs,
                                      repulsion_neighbs);
         }
       }

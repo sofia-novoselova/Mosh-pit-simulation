@@ -14,7 +14,7 @@ extern std::vector<Mosher> initialize_people(int32_t number_of_people,
                                              float radius,
                                              float active_velocity,
                                              const std::vector<bool> &mask);
-extern void initialize_positions(float box_size, std::vector<Mosher> &people);
+extern void initialize_positions_hex(float box_size, std::vector<Mosher> &people);
 
 #pragma pack(push, 1)
 struct AgentData {
@@ -25,18 +25,18 @@ struct AgentData {
 #pragma pack(pop)
 
 int main() {
-  int32_t N = 500;
-  float L = 20.0f;
-  float dt = 0.05f;
-  float active_fraction = 0.3f;
+  int32_t N = 380;
+  float L = 35.0f;
+  float dt = 0.03f;
+  float active_fraction = 0.45f;
   float fluct = 1.5f;
-  float flock = 0.5f;
-  int num_frames = 100; // Ровно 100 файлов
+  float flock = 0.8f;
+  int num_frames = 500; // Ровно 100 файлов
 
   float range_of_view = 4.0f;
   float mass = 1.0f;
   float radius = 1.0f;
-  float goal_vel = 1.0f;
+  float goal_vel = 2.0f;
 
   SystemConstants consts(25.0f, 1.0f, range_of_view, mass, radius, goal_vel);
 
@@ -44,7 +44,7 @@ int main() {
       generate_mask_for_mosher_activity(N, active_fraction);
   std::vector<Mosher> people =
       initialize_people(N, range_of_view, mass, radius, goal_vel, mask);
-  initialize_positions(L, people);
+  initialize_positions_hex(L, people);
   float packing_fraction = (N * 3.1415f * radius * radius) / (L * L);
 
   MoshPit pit(people, dt, L, L, packing_fraction, N, fluct, flock,
@@ -52,7 +52,8 @@ int main() {
 
   std::cout << "Запуск симуляции. Будет создано " << num_frames
             << " бинарных файлов..." << std::endl;
-
+  // pit.make_step_n_iterations_with_potential(50);
+  // pit.make_step_n_iterations(100000);
   for (int frame = 0; frame < num_frames; ++frame) {
     double current_time = frame * dt;
 

@@ -44,8 +44,12 @@ def read_single_frame(fpath, N):
 
 
 if __name__ == "__main__":
-    target_folder = "../build/"
+    print("Начали")
+    target_folder = "/home/redh9ad/people_modeling/build/"
+    print(f"Ищу файлы в папке: {os.path.abspath(target_folder)}")
+    
     bin_files = glob.glob(os.path.join(target_folder, "*.bin"))
+    print(f"Найдено файлов .bin: {len(bin_files)}")
 
     # 1. Группируем файлы
     simulations = defaultdict(list)
