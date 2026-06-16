@@ -25,9 +25,9 @@ int main() {
   float L = 35.0f;
   float dt = 0.1f;
   float active_fraction = 0.3f; // Доля людей, которые будут в центральном круге
-  float fluct = 1.0f;
-  float flock = 0.8f;
-  int num_frames = 500; 
+  float fluct = 0.06f;
+  float flock = 0.1f;
+  int num_frames = 1000; 
 
   float range_of_view = 4.0f;
   float mass = 1.0f;
@@ -49,7 +49,7 @@ int main() {
   std::cout << "Запуск симуляции. Будет создано " << num_frames
             << " бинарных файлов..." << std::endl;
   
-  pit.make_step_n_iterations(3000);
+  // pit.make_step_n_iterations(3000);
 
   for (int frame = 0; frame < num_frames; ++frame) {
     double current_time = frame * dt;
