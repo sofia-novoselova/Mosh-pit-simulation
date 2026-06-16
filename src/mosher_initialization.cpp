@@ -82,6 +82,7 @@ void initialize_positions_hex(float box_size, std::vector<Mosher>& people) {
     square += 3.14 * mosher.radius * mosher.radius;
   }
   packing_fraction = square / (box_size * box_size);
+  std::cout << "Плотность упаковки" << packing_fraction << '\n';
   if (packing_fraction >= 1) {
     throw std::runtime_error("Площадь людей превысила размер площадки");
   }
@@ -119,6 +120,8 @@ std::vector<Mosher> initialize_authors_moshpit(
 ) {
   std::vector<Mosher> people;
   people.reserve(number_of_people);
+  auto fraction = number_of_people * 3.14 * radius * radius / (box_size * box_size);
+  std::cout << "Плотность упаковки: " << fraction;
 
   std::random_device rd;
   std::mt19937 gen(rd());

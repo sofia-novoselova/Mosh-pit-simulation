@@ -21,18 +21,18 @@ struct AgentData {
 #pragma pack(pop)
 
 int main() {
-  int32_t N = 300;
+  int32_t N = 370;
   float L = 35.0f;
-  float dt = 0.03f;
-  float active_fraction = 0.45f; // Доля людей, которые будут в центральном круге
-  float fluct = 1.5f;
+  float dt = 0.1f;
+  float active_fraction = 0.3f; // Доля людей, которые будут в центральном круге
+  float fluct = 1.0f;
   float flock = 0.8f;
   int num_frames = 500; 
 
-  float range_of_view = 12.0f;
+  float range_of_view = 4.0f;
   float mass = 1.0f;
-  float radius = 3.0f;
-  float goal_vel = 2.0f;
+  float radius = 1.0f;
+  float goal_vel = 1.0f;
 
   SystemConstants consts(25.0f, 1.0f, range_of_view, mass, radius, goal_vel);
 
@@ -48,6 +48,8 @@ int main() {
 
   std::cout << "Запуск симуляции. Будет создано " << num_frames
             << " бинарных файлов..." << std::endl;
+  
+  pit.make_step_n_iterations(3000);
 
   for (int frame = 0; frame < num_frames; ++frame) {
     double current_time = frame * dt;

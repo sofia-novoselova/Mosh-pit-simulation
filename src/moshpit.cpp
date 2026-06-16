@@ -142,7 +142,7 @@ struct MoshPit {
         }
         auto delta_vector = mosher->position - person.position;
         auto delta_position = delta_vector.get_squared_magnitude();
-        if (delta_position < range_of_view * range_of_view) {
+        if (delta_position < range_of_view * range_of_view && mosher->state == ACTIVE) {
           flock_neighbs.push_back(mosher);
         }
         if (delta_position < (mosher->radius + person.radius) * (mosher->radius + person.radius)) {
