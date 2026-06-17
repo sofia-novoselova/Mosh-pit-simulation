@@ -2,3 +2,4 @@ build
 .vscode
 stupid_tests
 venv/
+__pycache__/

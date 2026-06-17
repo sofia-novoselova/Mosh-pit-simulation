@@ -11,4 +11,4 @@ set(SOURCES
     src/vector.cpp
 )
 
-add_executable(moshpit_sim vibe_main.cpp ${SOURCES})
+add_executable(moshpit_sim main.cpp ${SOURCES})

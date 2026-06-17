@@ -14,12 +14,16 @@ extern std::vector<Mosher> initialize_people(int32_t number_of_people,
                                              float radius,
                                              float active_velocity,
                                              const std::vector<bool> &mask);
-extern void initialize_positions_hex(float box_size, std::vector<Mosher> &people);
+extern void initialize_positions_hex(float box_size,
+                                     std::vector<Mosher> &people);
 
 #pragma pack(push, 1)
 struct AgentData {
   float x;
   float y;
+  float r;
+  float vx;
+  float vy;
   char type;
 };
 #pragma pack(pop)
@@ -73,6 +77,9 @@ int main() {
     for (int i = 0; i < N; ++i) {
       out_data[i].x = pit.people[i].position.x;
       out_data[i].y = pit.people[i].position.y;
+      out_data[i].r = pit.people[i].radius;
+      out_data[i].vx = pit.people[i].current_velocity.x;
+      out_data[i].vy = pit.people[i].current_velocity.y;
       out_data[i].type = (pit.people[i].state == Status::ACTIVE) ? 'a' : 'p';
     }
     outfile.write(reinterpret_cast<const char *>(out_data.data()),
