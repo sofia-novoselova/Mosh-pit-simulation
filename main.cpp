@@ -7,15 +7,9 @@
 #include "src/moshpit.cpp"
 #include "src/vector.hpp"
 
-extern std::vector<bool>
-generate_mask_for_mosher_activity(int32_t number_of_people, float active);
-extern std::vector<Mosher> initialize_people(int32_t number_of_people,
-                                             float range, float mass,
-                                             float radius,
-                                             float active_velocity,
-                                             const std::vector<bool> &mask);
-extern void initialize_positions_hex(float box_size,
-                                     std::vector<Mosher> &people);
+extern std::vector<Mosher> initialize_authors_moshpit(
+  int32_t number_of_people, float box_size, float active_fraction, 
+  float range, float mass, float radius, float active_velocity);
 
 #pragma pack(push, 1)
 struct AgentData {
@@ -32,9 +26,9 @@ int main() {
   int32_t N = 380;
   float L = 35.0f;
   float dt = 0.1f;
-  float active_fraction = 0.45f;
-  float fluct = 0.5f;
-  float flock = 1.0f;
+  float active_fraction = 0.3f;
+  float fluct = 0.09f;
+  float flock = 0.01f;
   int num_frames = 500; // Ровно 100 файлов
 
   float range_of_view = 4.0f;
@@ -44,11 +38,10 @@ int main() {
 
   SystemConstants consts(25.0f, 1.0f, range_of_view, mass, radius, goal_vel);
 
-  std::vector<bool> mask =
-      generate_mask_for_mosher_activity(N, active_fraction);
-  std::vector<Mosher> people =
-      initialize_people(N, range_of_view, mass, radius, goal_vel, mask);
-  initialize_positions_hex(L, people);
+  std::vector<Mosher> people = initialize_authors_moshpit(
+    N, L, active_fraction, range_of_view, mass, radius, goal_vel
+  );
+
   float packing_fraction = (N * 3.1415f * radius * radius) / (L * L);
 
   MoshPit pit(people, dt, L, L, packing_fraction, N, fluct, flock,
@@ -56,8 +49,8 @@ int main() {
 
   std::cout << "Запуск симуляции. Будет создано " << num_frames
             << " бинарных файлов..." << std::endl;
-  pit.make_step_n_iterations_with_potential(100);
-  // pit.make_step_n_iterations(100000);
+  // pit.make_step_n_iterations_with_potential(0);
+  // pit.make_step_n_iterations(500);
   for (int frame = 0; frame < num_frames; ++frame) {
     double current_time = frame * dt;
 
@@ -65,8 +58,8 @@ int main() {
     std::string filename =
         "sim_N" + std::to_string(N) + "_L" + std::to_string(L).substr(0, 4) +
         "_iter" + std::to_string(frame) + // меняется от 0 до 99
-        "_alpha" + std::to_string(flock).substr(0, 3) + "_sigma" +
-        std::to_string(fluct).substr(0, 3) + "_seed42.bin";
+        "_alpha" + std::to_string(flock).substr(0, 5) + "_sigma" +
+        std::to_string(fluct).substr(0, 5) + "_seed42.bin";
 
     std::ofstream outfile(filename, std::ios::binary);
 

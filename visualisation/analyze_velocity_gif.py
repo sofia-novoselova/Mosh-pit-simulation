@@ -103,6 +103,16 @@ if __name__ == "__main__":
             if len(speeds) > 0:
                 ax.hist(speeds, bins=30, range=(0, max_speed), density=True,
                         color='purple', alpha=0.7, edgecolor='black')
+                # Расчет эффективной температуры (средний квадрат скорости)
+                T_eff = np.mean(speeds**2)
+                
+                # Построение теоретической кривой Максвелла-Больцмана
+                if T_eff > 1e-6: # Защита от деления на ноль на первых кадрах
+                    v_vals = np.linspace(0, max_speed * 1.1, 200)
+                    pdf_vals = (2 * v_vals / T_eff) * np.exp(-(v_vals**2) / T_eff)
+                    ax.plot(v_vals, pdf_vals, color='red', linewidth=2.5, 
+                            label=f'Maxwell-Boltzmann ($T_{{eff}}$={T_eff:.2f})')
+                    ax.legend(loc='upper right', fontsize=11)
 
             # Фиксируем оси, чтобы график не дергался!
             ax.set_xlim(0, max_speed * 1.1)

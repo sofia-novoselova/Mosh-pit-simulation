@@ -21,12 +21,12 @@ struct AgentData {
 #pragma pack(pop)
 
 int main() {
-  int32_t N = 370;
+  int32_t N = 380;
   float L = 35.0f;
   float dt = 0.1f;
   float active_fraction = 0.3f; // Доля людей, которые будут в центральном круге
   float fluct = 0.06f;
-  float flock = 0.1f;
+  float flock = 0.05f;
   int num_frames = 1000; 
 
   float range_of_view = 4.0f;
