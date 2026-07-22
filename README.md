@@ -72,3 +72,4 @@ cd build
 cmake ..
 cmake --build .
 ./moshpit_sim
+cd build
